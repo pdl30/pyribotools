@@ -15,9 +15,10 @@ import itertools
 import HTSeq
 from multiprocessing import Pool, Manager
 import argparse
+import pyribotools
 
-def find_index(index_no):
-	with open("/home/patrick/Scripts/pyribotools/adapter_indices_table.txt") as f:
+def find_index(index_no, adapt_file):
+	with open(adapt_file) as f:
 		next(f)
 		for line in f:
 			line = line.rstrip()
@@ -25,9 +26,9 @@ def find_index(index_no):
 			if index_no == int(word[1]):
 				return word[3]
 
-def cut(fq, conditions, outdir, index, rpi):
+def cut(fq, conditions, outdir, index, rpi, adapt):
 	name = os.path.basename(fq)
-	index = find_index(int(conditions[fq]))
+	index = find_index(int(conditions[fq]), adapt)
 	command = "cutadapt -O 3 -b {} -a {} {} -q 20 -m 5 > {}/{}".format(rpi, index, fq, outdir, name)
 	subprocess.call(command, shell=True)
 
@@ -97,7 +98,7 @@ def main():
 	
 
 	rpi = "AATGATACGGCGACCACCGAGATCTACACGTTCAGAGTTCTACAGTCCGA";
-
+	adapt = pkg_resources.resource_filename('pyribotools', 'data/adapter_indices_table.txt')
 	if args["genome"] == "hg19":
 		rrna_reference = "/home/patrick/Reference_Genomes/rRNA_indices/human/rrna_index/rrna_reference"
 		gtf = "/home/patrick/Reference_Genomes/pyngspipe_references/hg19/hg19.gtf"
@@ -129,7 +130,7 @@ def main():
 		subprocess.call(["mkdir", align_dir])
 
 	pool = Pool(int(args["threads"]))
-	pool.map(f1, itertools.izip(list(conditions.keys()), itertools.repeat(conditions), itertools.repeat(trimmed_dir), itertools.repeat(index), itertools.repeat(rpi)))
+	pool.map(f1, itertools.izip(list(conditions.keys()), itertools.repeat(conditions), itertools.repeat(trimmed_dir), itertools.repeat(index), itertools.repeat(rpi), itertools.repeat(adapt)))
 	pool.map(f2, itertools.izip(list(conditions.keys()), itertools.repeat(trimmed_dir), itertools.repeat(first_char_stripped_dir)))
 	pool.map(f3, itertools.izip(list(conditions.keys()), itertools.repeat(first_char_stripped_dir), itertools.repeat(norna_dir), itertools.repeat(rrna_reference)))
 	pool.map(f4, itertools.izip(list(conditions.keys()), itertools.repeat(norna_dir), itertools.repeat(align_dir), itertools.repeat(gtf), itertools.repeat(index)))
