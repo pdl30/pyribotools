@@ -20,12 +20,11 @@ import numpy
 import matplotlib 
 matplotlib.use('Agg')
 from matplotlib import pyplot
-import pyatactools
 import pkg_resources
 import collections
 from qcmodule import mystat
 from itertools import islice
-
+import pyribotools
 #def sam_size(bam):
 #	results=  {}
 #	size = reduce(lambda x, y: x + y, [ int(l.rstrip('\n').split('\t')[2]) for l in pysam.flagstat(bam) ])
@@ -37,7 +36,7 @@ def sam_size(bam):
 	out = proc.communicate()[0]
 	return int(out.upper())
 
-def read_tss_pysam(bam, position_dict, halfwinwidth, return_dict):
+def run_tss(bam, position_dict, halfwinwidth, return_dict):
 	profile = numpy.zeros( 2*halfwinwidth, dtype="f" )
 	constant = 10000000/float(sam_size(bam))
 	samfile = pysam.Samfile(bam, "rb")
@@ -80,7 +79,8 @@ def read_tss_pysam(bam, position_dict, halfwinwidth, return_dict):
 	return_dict[bam] = profile
 
 def read_tss_function(args):
-	return read_tss_pysam(*args)
+	return run_tss(*args)
+
 def read_gene_function(args):
 	return genebody_coverage(*args)
 
@@ -250,6 +250,8 @@ def plot_tss_profile(conditions, anno, halfwinwidth, gene_filter, threads, comb,
 		manager = Manager()
 		return_dict = manager.dict()
 		pool = Pool(threads)
+		#run_tss(list(conditions)[0], positions, halfwinwidth, return_dict)
+			#run_tss(key, positions, halfwinwidth, return_dict)
 		pool.map(read_tss_function, itertools.izip(list(conditions.keys()), itertools.repeat(positions), itertools.repeat(halfwinwidth), itertools.repeat(return_dict)))
 		pool.close()
 		pool.join()	
@@ -406,7 +408,7 @@ def main():
 			filters = args["filter"]
 		else:
 			filters=None
-		data = pkg_resources.resource_filename('pyatactools', 'data/{}_ensembl_80.txt'.format(args["genome"]))
+		data = pkg_resources.resource_filename('pyribotools', 'data/{}_ensembl_80.txt'.format(args["genome"]))
 		plot_tss_profile(conditions, data, int(args["width"])/2.0, filters, int(args["threads"]), args["d"], args["output"])#
 	elif args["subparser_name"] == "gene":
 		if args["a"]:
@@ -415,7 +417,6 @@ def main():
 			filters = args["filter"]
 		else:
 			filters=None
-		data = pkg_resources.resource_filename('pyatactools', 'data/{}_ensembl_80.txt'.format(args["genome"]))
+		data = pkg_resources.resource_filename('pyribotools', 'data/{}_ensembl_80.txt'.format(args["genome"]))
 		plot_genebody_profile(conditions, data, filters, int(args["threads"]), args["d"], args["output"])
 		
-main()
